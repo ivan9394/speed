@@ -56,4 +56,4 @@ def upload_video():
     return render_template('upload_video2.html')
 
 if __name__ == '__main__':
-    app.run(host='47.99.145.151', port= 80)
+    app.run(host='0.0.0.0', port= 80)
