@@ -1,20 +1,45 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
     <meta charset="utf-8">
-    <title>{{ name }}'s Watchlist_page</title>
+    <title>速度即力量</title>
 </head>
 <body>
-    <h2>{{ name }}'s Watchlist</h2>
-    {# 使用 length 过滤器获取 movies 变量的长度 #}
-    <p>{{ movies|length }} Titles</p>
-    <ul>
-        {% for movie in movies %}  {# 迭代 movies 变量 #}
-        <li>{{ movie.title }} - {{ movie.year }}</li>  {# 等同于 movie['title'] #}
-        {% endfor %}  {# 使用 endfor 标签结束 for 语句 #}
-    </ul>
-    <footer>
-        <small>&copy; 2018 <a href="http://helloflask.com/book/3">HelloFlask</a></small>
-    </footer>
+    <h2>速度即力量</h2>
+    <form method="post" enctype="multipart/form-data">
+        <ul>
+         <li>
+           <label for="name">昵称:</label>
+           <input type="text" id="name" name="user_name">
+           <span>目前只是测试阶段,无需填写</span>
+         </li>
+         <li>
+           <label for="bodyheight">身高(米):</label>
+           <input type="number" id="bodyheight" name="user_bodyheight" min = 1.00 max = 2.50 step = 0.01>
+           <span>单位米,请至少保留两位小数,如1.75</span>
+         </li>
+         <li>
+           <label for="bodyweight">体重(公斤):</label>
+           <input type = 'number' id="bodyweight" name="user_weight" min = 30 max = 150>
+           <span>取整即可</span>
+         </li>
+         <li>
+            <label for="uploadweight">负重(公斤):</label>
+            <input type = 'number' id="uploadweight" name="upload_weight" value = 0 min = 0 max = 200>
+            <span>徒手即负重0,输入取整即可</span>
+          </li>
+         <li>
+            <label>视频：</label>
+            <input type="file" name="file" accept="video/mp4" required/>
+            <span>①请使用mp4格式; ②不能超过16MB; ③视频仅做分析用,可放心上传</span>
+        </li>
+         <li class="button">
+            <button type="submit">提交</button>
+          </li>
+        </ul>
+    </form>
+    {% for message in get_flashed_messages() %}
+    <div class="alert">{{ message }}</div>
+    {% endfor %}
 </body>
 </html>

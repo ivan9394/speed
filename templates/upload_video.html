@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>上传视频</title>
+<h1>视频上传</h1>
+<form method="POST" enctype="multipart/form-data">
+    <ul>
+    <li>
+        <label>视频：</label>
+        <input type="file" name="video" accept="video/mp4" required/><span>请使用mp4格式</span>
+    </li>
+    </ul>
+    <b class="btn"><input type="submit" value="提交"/>
+</form>
+{% for message in get_flashed_messages() %}
+<div class="alert">{{ message }}</div>
+{% endfor %}
