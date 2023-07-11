@@ -139,7 +139,7 @@ def speed_cal(ref_height, input_path, method = 'cmj', height_type = 'ankle2shoul
     frame_size = (cap.get(cv2.CAP_PROP_FRAME_WIDTH), cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     # fourcc = int(cap.get(cv2.CAP_PROP_FOURCC))
     # fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    # fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     fps = cap.get(cv2.CAP_PROP_FPS)
     
     # 进度条绑定视频总帧数
@@ -191,6 +191,6 @@ def speed_cal(ref_height, input_path, method = 'cmj', height_type = 'ankle2shoul
             mid_hip_last = mid_hip
         # if cv2.waitKey(1) & 0xFF == ord('q'):
             # break
-    cv2.destroyAllWindows()
+    #cv2.destroyAllWindows()
     cap.release()
     return max_speed
