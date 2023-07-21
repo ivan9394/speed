@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>登录</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+</head>
+<body>
+
+<div class="container-fluid">
+
+  <div class="row">
+
+    <div class="col-md-7 p-0">
+      <img src="{{ url_for('static',filename = 'jordanx.jpg') }}" class="w-100" alt="致永远的神">
+    </div>
+
+    <div class="col-md-5">
+      
+      <div class="form-panel p-5">
+        <h2 class="text-center mb-4">用户登录</h2>
+        {% with messages = get_flashed_messages()%}
+            {% if messages %}
+                {% for message in messages%}
+                    <p>{{ message}}</p>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% for message in form.username.errors%}
+            <div> {{message}} </div>
+        {% endfor %}
+
+        {% for message in form.password.errors%}
+            <div> {{message}} </div>
+        {% endfor %}
+        <form method = 'POST' action = '/login'>
+          {{ form.hidden_tag() }}
+          <div class="form-group">
+            {{ form.username.label}} <br>
+            {{ form.username}}<br>
+          </div>
+          
+          <div class="form-group">
+            {{ form.password.label}} <br>
+            {{ form.password}}
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">登录</button>
+          <p>还没有账户?点击<a href="{{url_for('register')}}">注册</a></p> 
+        </form>
+
+      </div>
+      
+    </div>
+
+  </div>
+  
+</div>
+
+</body>
+</html>

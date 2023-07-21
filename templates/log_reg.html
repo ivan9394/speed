@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>用户登录</title>
+    <style>
+        .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .image {
+            flex: 1;
+            padding: 20px;
+        }
+
+        .login-form {
+            flex: 1;
+            padding: 20px;
+        }
+
+        .login-form h2 {
+            margin-bottom: 20px;
+        }
+
+        .login-form input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .login-form button {
+            padding: 10px 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="image">
+            <img src="jordanx.jpg" alt="图片">
+        </div>
+        <div class="login-form">
+            <h2>用户登录</h2>
+            <form action="/login" method="POST">
+                <label for="username">用户名：</label>
+                <input type="text" id="username" name="username" required><br><br>
+
+                <label for="password">密码：</label>
+                <input type="password" id="password" name="password" required><br><br>
+
+                <button type="submit">登录</button>
+            </form>
+            <p>还没有账号？<a href="/register">点击注册</a></p>
+        </div>
+    </div>
+</body>
+</html>

@@ -4,7 +4,6 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import array as arr
-
 # 导入solution
 mp_pose = mp.solutions.pose
 
@@ -95,7 +94,7 @@ def process_frame(img):
     return img, body_height, mid_hip[1], right_hip, left_hip, right_shoulder, left_shoulder, right_knee, left_knee, right_ankle, left_ankle
 
 
-def speed_cal(ref_height, input_path, method = 'cmj', height_type = 'ankle2shoulder'):
+def speed_cal(ref_height, input_path, method = 'cmj', height_type = 'bodyheight'):
     #filehead = input_path.split('/')[-1]
     #fileroute = input_path.split
     #output_path = "out-" + filehead

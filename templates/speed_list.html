@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body {
+  background-color: #f2f2f2; 
+}
+
+table {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+
+th, td {
+  border: 1px solid black;
+  padding: 5px 10px;
+}
+
+td:last-child {
+  color: white;
+}
+</style>
+<title> 个人列表 </title>
+</head>
+
+<body>
+
+<img src="{{ url_for('static',filename = 'header2.jpg') }}" width="100%">
+<h1> 个人跳跃记录 <h1>
+    {% with messages = get_flashed_messages()%}
+        {% if messages %}
+            {% for message in messages%}
+                <p>{{ message}}</p>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+<table>
+<tr>
+  <th>动作类型</th>
+  <th>最大速度</th>
+  <th>最大高度</th>
+  <th>体重</th>
+  <th>负重</th>
+  <th>峰值功率</th>
+  <th>上传时间</th>
+  <th style="color:white">其他</th>
+</tr>
+{% for user_speed in speed_list%}
+<tr>
+  <td>{{user_speed.act_type}}</td>
+  <td>{{user_speed.max_speed}} m/s</td> 
+  <td>{{user_speed.max_height}} cm</td>
+  <td>{{user_speed.body_weight}} kg</td>
+  <td>{{user_speed.load_weight}} kg</td> 
+  <td>{{user_speed.max_power}} W</td>
+  <td>{{user_speed.upload_time.strftime('%Y-%m-%d')}}</td>
+  <td><a href = '/delete/{{ user_speed.id }}'>删除记录</a></td>  
+</tr>
+{% endfor %}
+</table>
+<a href = 'upload'>上传视频</a>
+</body>
+</html>

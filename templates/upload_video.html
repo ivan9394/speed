@@ -1,15 +1,56 @@
 <!DOCTYPE html>
-<title>上传视频</title>
-<h1>视频上传</h1>
-<form method="POST" enctype="multipart/form-data">
-    <ul>
-    <li>
-        <label>视频：</label>
-        <input type="file" name="video" accept="video/mp4" required/><span>请使用mp4格式</span>
-    </li>
-    </ul>
-    <b class="btn"><input type="submit" value="提交"/>
-</form>
-{% for message in get_flashed_messages() %}
-<div class="alert">{{ message }}</div>
-{% endfor %}
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>上传视频</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+</head>
+<body>
+
+<div class="container-fluid">
+
+  <div class="row">
+
+    <div class="col-md-7 p-0">
+      <img src="{{ url_for('static',filename = 'jordanx.jpg') }}" class="w-100" alt="致永远的神">
+    </div>
+
+    <div class="col-md-5">
+      
+      <div class="form-panel p-5">
+        <h2 class="text-center mb-4">视频上传</h2>
+        {% with messages = get_flashed_messages()%}
+            {% if messages %}
+                {% for message in messages%}
+                    <p>{{ message}}</p>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <form method = 'POST' action = '/upload' enctype='multipart/form-data'>
+            {{ form.hidden_tag() }}
+          <div class="form-group">
+            {{ form.act_type.label}} <br>
+            {{ form.act_type }}<br>
+          </div>
+          
+          <div class="form-group">
+            {{ form.load_weight.label}} <br>
+            {{ form.load_weight}}
+          </div>
+          <div class="form-group">
+            {{ form.file.label}} <br>
+            {{ form.file}}
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">上传</button>
+        </form>
+
+      </div>
+      
+    </div>
+
+  </div>
+  
+</div>
+
+</body>
+</html>
