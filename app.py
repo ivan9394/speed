@@ -4,7 +4,7 @@ import speed
 import datetime
 import threading
 import uuid
-from flask import Flask, flash, request, redirect, url_for,render_template
+from flask import Flask, flash, request, redirect, url_for,render_template,send_from_directory
 from werkzeug.utils import secure_filename
 from speed import speed_cal, process_frame, get_landmark
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
@@ -13,6 +13,11 @@ from wtforms import StringField, PasswordField, SubmitField, HiddenField,FileFie
 from wtforms.validators import DataRequired, EqualTo, Email
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
+from flask_caching import Cache
+
+
+
+
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -39,6 +44,9 @@ app.secret_key = 'ivan9394'
 CSRFProtect(app)
 db = SQLAlchemy(app)
 
+# 配置静态缓存
+cache = Cache(config={'CACHE_TYPE': 'simple'})
+cache.init_app(app)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -222,6 +230,12 @@ def my_delete(id):
     db.session.commit()
     current_list = User_Speed.query.filter_by(username = current_user.username).order_by(User_Speed.id.desc()).all()
     return render_template('speed_list.html', speed_list = current_list)
+
+
+@app.route('/static/<path:filename>')
+@cache.cached(timeout=360000, key_prefix='static')  
+def static_files(filename):
+    return send_from_directory(app.static_url_path, filename)
 
 
 def init_db():

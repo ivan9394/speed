@@ -6,6 +6,9 @@ __pycache__/
 # video
 upload/video/
 
+# database
+.db
+
 # C extensions
 *.so
 
