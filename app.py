@@ -179,14 +179,12 @@ def upload_file():
                 filename = secure_filename(speed_form.file.data.filename)
                 new_filename = current_user.username + '_' + str(uuid.uuid4()) + filename
                 request.files['file'].save(os.path.join(app.config['UPLOAD_FOLDER'], new_filename))
-                max_speed, key_frame_path = speed_cal(ref_height = current_user.body_height, input_path = os.path.join(app.config['UPLOAD_FOLDER'], new_filename), method = 'cmj', height_type = 'bodyheight')
+                max_speed, key_frame_path = speed_cal(ref_height = current_user.body_height, filename= new_filename, file_path = app.config['UPLOAD_FOLDER'], method = 'cmj', height_type = 'bodyheight')
+                os.remove(os.path.join(app.config['UPLOAD_FOLDER'], new_filename))  # 删除文件
                 if max_speed == -10:
                     flash('视频帧数过多,请进行剪辑后再上传')
                     return render_template('upload_video.html', form = speed_form)
-                elif max_speed == -100:
-                    flash('视频无法打开,请确认视频格式后重新上传')
-                    return render_template('upload_video.html', form = speed_form)
-                else: 
+                else:
                     max_height = round((0.5 * max_speed * max_speed / 9.8)*100)
                     try:
                         load_weight = float(speed_form.load_weight.data)

@@ -4,6 +4,7 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import array as arr
+import os
 # 导入solution
 mp_pose = mp.solutions.pose
 
@@ -134,26 +135,22 @@ def process_frame(img):
     return img, body_height, -mid_hip[1], -mid_shoulder[1], -mid_knee[1], -mid_ankle[1], -mid_foot[1]
 
 
-def speed_cal(ref_height, input_path, method = 'cmj', height_type = 'bodyheight'):
-    filehead = input_path.split('/')[-1]
-    #fileroute = input_path.split
-    #output_path = "out-" + filehead
-    
-    # print('视频开始处理',input_path)
+def speed_cal(ref_height, filename, file_path, method = 'cmj', height_type = 'bodyheight'):
     
     # 获取视频总帧数
+    input_path = os.path.join(file_path, filename)
     cap = cv2.VideoCapture(input_path)
     frame_count = int(0)
     while(cap.isOpened()):
         success, frame = cap.read()
         frame_count += 1
         if not success:
-            return -100
+            break
     cap.release()
     # print('视频总帧数为',frame_count)
     if frame_count > 1000:
         # 使用raise来增加错误处理，若视频帧数过多，剪辑视频
-        return -10
+        return -10, ''
 
     
     # 初始化各个变量，返回髋关节以及身高数组
@@ -172,6 +169,7 @@ def speed_cal(ref_height, input_path, method = 'cmj', height_type = 'bodyheight'
     mid_foot_last = 0
     max_speed = 0
     max_speed_2 = 0
+    first_jump_frame_tag = False
     frame_count_new = int(0)
     # cv2.namedWindow('Crack Detection and Measurement Video Processing')
     cap = cv2.VideoCapture(input_path)
@@ -223,15 +221,20 @@ def speed_cal(ref_height, input_path, method = 'cmj', height_type = 'bodyheight'
         # 计算 6*fps_n - 1 帧的平均速度, 然后通过该平均速度反推 起跳帧的速度
         max_speed_2 = (np.mean(speed_arr[(jump_frame + 1):(jump_frame + 6*fps_n)])) + (6*fps_n / 2 - 0.5) * 9.8 / fps
     if jump_frame > 0:
-        key_frame_path = './video_output/' + 'keyframe_' + filehead
-        extract_frames(input_video = input_path, output_video = key_frame_path, start_frame = (jump_frame - fps_n * 20), end_frame = (jump_frame + fps_n * 20))
+        filename = 'keyframe_' + filename
+        key_frame_path = os.path.join(file_path, filename)
+        extract_frames(input_video = input_path, output_video = key_frame_path, start_frame = (jump_frame - fps_n * 20), end_frame = (jump_frame + fps_n * 20), max_speed=max_speed_2)
         print('视频已保存', key_frame_path)
     else:
-        key_frame_path = './video_output/' + 'no_keyframe_' + filehead
-        extract_frames(input_video = input_path, output_video = key_frame_path, start_frame = 0, end_frame = frame_count_new)
+        filename = 'nokeyframe_' + filename
+        key_frame_path = os.path.join(file_path, filename)
+        extract_frames(input_video = input_path, output_video = key_frame_path, start_frame = 0, end_frame = (frame_count_new-1), max_speed=max_speed)
         print('视频已保存', key_frame_path)
     cap.release()
     if method == 'cmj':
-        return max_speed_2 if max_speed_2 > 0 else max_speed
+        if max_speed_2 > 0:
+            return max_speed_2, ''
+        else:
+            return max_speed, ''
     else:
         return max_speed, key_frame_path
