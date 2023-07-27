@@ -2,7 +2,6 @@ import os
 import sys
 import speed
 import datetime
-import threading
 import uuid
 from flask import Flask, flash, request, redirect, url_for,render_template,send_from_directory
 from werkzeug.utils import secure_filename
@@ -14,12 +13,8 @@ from wtforms.validators import DataRequired, EqualTo, Email
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from flask_caching import Cache
-
-
-
-
-
 from werkzeug.security import generate_password_hash, check_password_hash
+
 
 UPLOAD_FOLDER = os.getcwd() + "/upload/video"
 ALLOWED_EXTENSIONS = {'mp4','mov','avi', 'wmv', 'flv', 'mkv', 'm4v'}
@@ -184,27 +179,34 @@ def upload_file():
                 filename = secure_filename(speed_form.file.data.filename)
                 new_filename = current_user.username + '_' + str(uuid.uuid4()) + filename
                 request.files['file'].save(os.path.join(app.config['UPLOAD_FOLDER'], new_filename))
-                max_speed = speed_cal(ref_height = current_user.body_height, input_path = os.path.join(app.config['UPLOAD_FOLDER'], new_filename), method = 'cmj', height_type = 'bodyheight')
-                max_height = round((0.5 * max_speed * max_speed / 9.8)*100)
-                try:
-                    load_weight = float(speed_form.load_weight.data)
-                except:
-                    load_weight = 0
-                max_power = round(max_speed * (current_user.body_weight + load_weight) * 9.8)
-                max_speed = round(max_speed,2)
-                s_list = User_Speed(username =current_user.username
-                        ,filename = new_filename
-                        ,body_height = current_user.body_height
-                        ,body_weight = current_user.body_weight
-                        ,act_type = speed_form.act_type.data
-                        ,max_speed = max_speed
-                        ,max_height = max_height
-                        ,max_power = max_power
-                        ,load_weight = load_weight)
-                db.session.add(s_list)
-                db.session.commit()
-                current_list = User_Speed.query.filter_by(username = current_user.username).order_by(User_Speed.id.desc()).all()
-                return render_template('speed_list.html', speed_list = current_list)
+                max_speed, key_frame_path = speed_cal(ref_height = current_user.body_height, input_path = os.path.join(app.config['UPLOAD_FOLDER'], new_filename), method = 'cmj', height_type = 'bodyheight')
+                if max_speed == -10:
+                    flash('视频帧数过多,请进行剪辑后再上传')
+                    return render_template('upload_video.html', form = speed_form)
+                elif max_speed == -100:
+                    flash('视频无法打开,请确认视频格式后重新上传')
+                    return render_template('upload_video.html', form = speed_form)
+                else: 
+                    max_height = round((0.5 * max_speed * max_speed / 9.8)*100)
+                    try:
+                        load_weight = float(speed_form.load_weight.data)
+                    except:
+                        load_weight = 0
+                    max_power = round(max_speed * (current_user.body_weight + load_weight) * 9.8)
+                    max_speed = round(max_speed,2)
+                    s_list = User_Speed(username =current_user.username
+                            ,filename = key_frame_path
+                            ,body_height = current_user.body_height
+                            ,body_weight = current_user.body_weight
+                            ,act_type = speed_form.act_type.data
+                            ,max_speed = max_speed
+                            ,max_height = max_height
+                            ,max_power = max_power
+                            ,load_weight = load_weight)
+                    db.session.add(s_list)
+                    db.session.commit()
+                    current_list = User_Speed.query.filter_by(username = current_user.username).order_by(User_Speed.id.desc()).all()
+                    return render_template('speed_list.html', speed_list = current_list)
             else:
                 flash('视频名称'+speed_form.file.data + '不符合要求')
                 return render_template('upload_video.html', form = speed_form)

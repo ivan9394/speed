@@ -14,12 +14,49 @@ mp_drawing = mp.solutions.drawing_utils
 pose = mp_pose.Pose(static_image_mode=False,        # 是静态图片还是连续视频帧
                     model_complexity=2,            # 选择人体姿态关键点检测模型，0性能差但快，2性能好但慢，1介于两者之间
                     smooth_landmarks=True,         # 是否平滑关键点
-                    min_detection_confidence=0.5,  # 置信度阈值
-                    min_tracking_confidence=0.5)   # 追踪阈值
+                    min_detection_confidence=0.7,  # 置信度阈值
+                    min_tracking_confidence=0.7)   # 追踪阈值
 
 # 三维距离有误差，目前只计算二维距离
 def get_landmark(results, i):
     return np.array([results.pose_landmarks.landmark[i].x, results.pose_landmarks.landmark[i].y])
+
+def extract_frames(input_video, output_video, start_frame, end_frame, max_speed) -> None:
+    # 打开输入视频文件
+    cap = cv2.VideoCapture(input_video)
+    # 获取输入视频的帧率和尺寸
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    # 创建输出视频文件
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    out = cv2.VideoWriter(output_video, fourcc, fps, (width, height))
+    my_image = cv2.imread('./static/basketball.png')
+    my_image_height, my_image_width, _= my_image.shape
+    # 设置开始和结束帧的范围
+    cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+
+    # 逐帧读取并写入输出视频
+    frame_count = start_frame
+    while frame_count <= end_frame:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        # 对帧进行处理（例如，可以在这里添加滤镜或其他操作）
+        overlay = frame.copy()
+        overlay[(height - my_image_height - 100):(height - 100), (0 + 50):(my_image_width + 50)] = my_image
+        # 增加速度
+        overlay = cv2.putText(overlay, str(round(max_speed,2)), (85,(height - 300)), cv2.FONT_HERSHEY_SIMPLEX, 4, (64, 64, 64), 12)
+        frame = cv2.addWeighted(overlay, 0.5, frame, 0.5, 0)
+        # 将帧写入输出视频
+        out.write(frame)
+
+        frame_count += 1
+
+    # 释放资源
+    cap.release()
+    out.release()
 
 def process_frame(img):
     # 初始化
@@ -44,16 +81,19 @@ def process_frame(img):
         right_ankle = get_landmark(results, 28)
         right_hip = get_landmark(results, 24)
         right_shoulder= get_landmark(results, 12)
-        nose = get_landmark(results, 0)
         mid_shoulder = (left_shoulder + right_shoulder) / 2
         mid_hip = (left_hip + right_hip) / 2
+        left_foot = get_landmark(results, 31)
+        right_foot = get_landmark(results, 32)
+        mid_ankle = (left_ankle + right_ankle) / 2
+        mid_foot = (left_foot + right_foot) / 2
+        mid_knee = (left_knee + right_knee) / 2
         # body_height 计算 分三段，肩关节 -> 髋关节， 髋关节 -> 膝关节， 膝关节 -> 踝关节
-        body_height = np.linalg.norm(mid_shoulder - mid_hip) + np.linalg.norm(mid_hip - (left_knee + right_knee)/2) + np.linalg.norm((left_knee + right_knee)/2 - (left_ankle + right_ankle)/2)
+        body_height = np.linalg.norm(mid_shoulder - mid_hip) + np.linalg.norm(mid_hip - mid_knee) + np.linalg.norm(mid_knee - mid_ankle)
         # 可视化关键点及骨架连线
         # mp_drawing.draw_landmarks(img, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
         
         for i in range(33): # 遍历所有33个关键点，可视化
-
             # 获取该关键点的三维坐标
             cx = int(results.pose_landmarks.landmark[i].x * w)
             cy = int(results.pose_landmarks.landmark[i].y * h)
@@ -82,8 +122,8 @@ def process_frame(img):
         # 展示图片
         # look_img(img)
     else:
-        scaler = 3
-        failure_str = 'No Person'
+        # 没有检测到人体
+        return img,0,0,0,0,0,0
         
     # 记录该帧处理完毕的时间
     # end_time = time.time()
@@ -91,11 +131,11 @@ def process_frame(img):
     # FPS = 1/(end_time - start_time)
     # 在图像上写FPS数值，参数依次为：图片，添加的文字，左上角坐标，字体，字体大小，颜色，字体粗细
     #img = cv2.putText(img, 'FPS  '+str(int(FPS)), (25 * scaler, 50 * scaler), cv2.FONT_HERSHEY_SIMPLEX, 1.25 * scaler, (255, 0, 255), 2 * scaler)
-    return img, body_height, mid_hip[1], right_hip, left_hip, right_shoulder, left_shoulder, right_knee, left_knee, right_ankle, left_ankle
+    return img, body_height, -mid_hip[1], -mid_shoulder[1], -mid_knee[1], -mid_ankle[1], -mid_foot[1]
 
 
 def speed_cal(ref_height, input_path, method = 'cmj', height_type = 'bodyheight'):
-    #filehead = input_path.split('/')[-1]
+    filehead = input_path.split('/')[-1]
     #fileroute = input_path.split
     #output_path = "out-" + filehead
     
@@ -103,36 +143,36 @@ def speed_cal(ref_height, input_path, method = 'cmj', height_type = 'bodyheight'
     
     # 获取视频总帧数
     cap = cv2.VideoCapture(input_path)
-    frame_count = 0
+    frame_count = int(0)
     while(cap.isOpened()):
         success, frame = cap.read()
         frame_count += 1
         if not success:
-            break
+            return -100
     cap.release()
     # print('视频总帧数为',frame_count)
     if frame_count > 1000:
-        # print('帧数过多，请剪辑视频')
-        return -100
+        # 使用raise来增加错误处理，若视频帧数过多，剪辑视频
+        return -10
+
     
     # 初始化各个变量，返回髋关节以及身高数组
-    hip_arr = arr.array('f')
-    body_height_arr = arr.array('f')
     speed_arr = arr.array('f')
-    mid_gap_arr = arr.array('f')
-    right_hip_arr = list()
-    left_hip_arr = list()
-    right_shoulder_arr = list()
-    left_shoulder_arr = list()
-    right_knee_arr = list()
-    left_knee_arr = list()
-    right_ankle_arr = list()
-    left_ankle_arr = list()
+    foot_gap_arr = arr.array('f')
+    mid_hip = 0
+    mid_shoulder = 0
+    mid_knee = 0
+    mid_ankle = 0
+    mid_foot = 0
     body_height_last = 0
     mid_hip_last = 0
+    mid_shoulder_last = 0
+    mid_knee_last = 0
+    mid_ankle_last = 0
+    mid_foot_last = 0
     max_speed = 0
-    frame_count_new = 0
-    scaler = 1
+    max_speed_2 = 0
+    frame_count_new = int(0)
     # cv2.namedWindow('Crack Detection and Measurement Video Processing')
     cap = cv2.VideoCapture(input_path)
     frame_size = (cap.get(cv2.CAP_PROP_FRAME_WIDTH), cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -140,56 +180,58 @@ def speed_cal(ref_height, input_path, method = 'cmj', height_type = 'bodyheight'
     # fourcc = cv2.VideoWriter_fourcc(*'XVID')
     # fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     fps = cap.get(cv2.CAP_PROP_FPS)
-    
+    fps_n = int(round(fps/30))
     # 进度条绑定视频总帧数
     while(cap.isOpened()):
         success, frame = cap.read()
         if not success:
             break
-        # 处理帧
-        # frame_path = './temp_frame.png'
-        # cv2.imwrite(frame_path, frame)
-        #try:
-        
-        # except:
-        #     print('error')
-        #     pass
 
         else:
-            frame, body_height, mid_hip, right_hip, left_hip, right_shoulder, left_shoulder, right_knee, left_knee, right_ankle, left_ankle = process_frame(frame)
-            hip_arr.append(-mid_hip)
-            body_height_arr.append(body_height)
-            right_hip_arr.append(right_hip)
-            left_hip_arr.append(left_hip)
-            right_shoulder_arr.append(right_shoulder)
-            left_shoulder_arr.append(left_shoulder)
-            right_knee_arr.append(right_knee)
-            left_knee_arr.append(left_knee)
-            right_ankle_arr.append(right_ankle)
-            left_ankle_arr.append(left_ankle)
+            frame, body_height, mid_hip, mid_shoulder, mid_knee, mid_ankle, mid_foot= process_frame(frame)
             # body_height = 0 则表示 人体识别不成功， 不计算速度
             if body_height > 0  and body_height_last > 0 and frame_count_new > 10:
-                mid_gap = round(-(mid_hip - mid_hip_last),3)
+                mid_gap = round((mid_hip - mid_hip_last + mid_shoulder - mid_shoulder_last + mid_knee - mid_knee_last + mid_ankle - mid_ankle_last)/4,3)
                 if method == 'cmj' and height_type == 'ankel2shoulder':
-                    speed = round(-(mid_hip - mid_hip_last) * fps * (ref_height / body_height), 3)
+                    speed = round( mid_gap * fps * (ref_height / body_height), 3)
                 elif method == 'cmj' and height_type == 'bodyheight':
                     # 当输入为身高时，则取 body_height / 0.77 为 推断身高
-                    speed = round(-(mid_hip - mid_hip_last) * fps * (ref_height / body_height * 0.77), 3)
+                    speed = round(mid_gap * fps * (ref_height / body_height * 0.77), 3)
                 else:
                     print('不存在该方法')
-                
             else:
                 mid_gap = 0
                 speed = 0
             speed_arr.append(speed)
-            mid_gap_arr.append(mid_gap)
-            if speed > max_speed:
-                max_speed = speed
+            foot_gap_arr.append(mid_foot - mid_foot_last)
+            max_speed = max(max_speed, speed)
+            if (foot_gap_arr[frame_count_new] > 5 * np.std(foot_gap_arr[(frame_count_new - 5):frame_count_new])) and (not first_jump_frame_tag) and frame_count_new > 20 and speed > 1:
+                first_jump_frame_tag = True
+                jump_frame = frame_count_new
+        
             frame_count_new += 1
             body_height_last = body_height
             mid_hip_last = mid_hip
+            mid_shoulder_last = mid_shoulder
+            mid_knee_last = mid_knee
+            mid_ankle_last = mid_ankle
+            mid_foot_last = mid_foot
         # if cv2.waitKey(1) & 0xFF == ord('q'):
             # break
-    #cv2.destroyAllWindows()
+    # 双脚跳采用 起跳帧计算速度
+    if method == 'cmj' and jump_frame > 0:
+        # 计算 6*fps_n - 1 帧的平均速度, 然后通过该平均速度反推 起跳帧的速度
+        max_speed_2 = (np.mean(speed_arr[(jump_frame + 1):(jump_frame + 6*fps_n)])) + (6*fps_n / 2 - 0.5) * 9.8 / fps
+    if jump_frame > 0:
+        key_frame_path = './video_output/' + 'keyframe_' + filehead
+        extract_frames(input_video = input_path, output_video = key_frame_path, start_frame = (jump_frame - fps_n * 20), end_frame = (jump_frame + fps_n * 20))
+        print('视频已保存', key_frame_path)
+    else:
+        key_frame_path = './video_output/' + 'no_keyframe_' + filehead
+        extract_frames(input_video = input_path, output_video = key_frame_path, start_frame = 0, end_frame = frame_count_new)
+        print('视频已保存', key_frame_path)
     cap.release()
-    return max_speed
+    if method == 'cmj':
+        return max_speed_2 if max_speed_2 > 0 else max_speed
+    else:
+        return max_speed, key_frame_path
