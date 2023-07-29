@@ -3,7 +3,7 @@ import sys
 import speed
 import datetime
 import uuid
-from flask import Flask, flash, request, redirect, url_for,render_template,send_from_directory
+from flask import Flask, flash, request, redirect, url_for,render_template,send_from_directory,send_file
 from werkzeug.utils import secure_filename
 from speed import speed_cal, process_frame, get_landmark
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
@@ -16,7 +16,7 @@ from flask_caching import Cache
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
-UPLOAD_FOLDER = os.getcwd() + "/upload/video"
+UPLOAD_FOLDER = os.getcwd() + "/static/video"
 ALLOWED_EXTENSIONS = {'mp4','mov','avi', 'wmv', 'flv', 'mkv', 'm4v'}
 # SQLite URI compatible
 WIN = sys.platform.startswith('win')
@@ -167,7 +167,8 @@ def allowed_file(filename):
 @login_required
 @app.route('/speed_list')
 def speed_list():
-    return render_template('speed_list.html', name = current_user.username)
+    current_list = User_Speed.query.filter_by(username = current_user.username).order_by(User_Speed.id.desc()).all()
+    return render_template('speed_list.html', speed_list = current_list)
 
 @login_required
 @app.route('/upload', methods=['GET', 'POST'])
@@ -177,9 +178,10 @@ def upload_file():
         if speed_form.validate_on_submit():
             if allowed_file(speed_form.file.data.filename):
                 filename = secure_filename(speed_form.file.data.filename)
-                new_filename = current_user.username + '_' + str(uuid.uuid4()) + filename
+                etn = filename.split('.')[-1]
+                new_filename = current_user.username + '_' + str(uuid.uuid4()) + '.' + etn
                 request.files['file'].save(os.path.join(app.config['UPLOAD_FOLDER'], new_filename))
-                max_speed, key_frame_path = speed_cal(ref_height = current_user.body_height, filename= new_filename, file_path = app.config['UPLOAD_FOLDER'], method = 'cmj', height_type = 'bodyheight')
+                max_speed, filename = speed_cal(ref_height = current_user.body_height, filename= new_filename, file_path = app.config['UPLOAD_FOLDER'], method = 'cmj', height_type = 'bodyheight')
                 os.remove(os.path.join(app.config['UPLOAD_FOLDER'], new_filename))  # 删除文件
                 if max_speed == -10:
                     flash('视频帧数过多,请进行剪辑后再上传')
@@ -193,7 +195,7 @@ def upload_file():
                     max_power = round(max_speed * (current_user.body_weight + load_weight) * 9.8)
                     max_speed = round(max_speed,2)
                     s_list = User_Speed(username =current_user.username
-                            ,filename = key_frame_path
+                            ,filename = filename
                             ,body_height = current_user.body_height
                             ,body_weight = current_user.body_weight
                             ,act_type = speed_form.act_type.data
@@ -214,20 +216,25 @@ def upload_file():
     elif request.method == 'GET':
         return render_template('upload_video.html', form = speed_form)
 
+
+
 @app.route('/delete/<int:id>')
 def my_delete(id):
     s_list = User_Speed.query.get(id)
-    del_file = os.path.join(app.config['UPLOAD_FOLDER'], s_list.filename)
-    if del_file:
-        if os.path.exists(del_file):
-            os.remove(del_file)  # 删除文件
-            flash('文件删除成功')
+    if current_user.username == s_list.username:
+        del_file = os.path.join(app.config['UPLOAD_FOLDER'], s_list.filename)
+        if del_file:
+            if os.path.exists(del_file):
+                os.remove(del_file)  # 删除文件
+                flash('文件删除成功')
+            else:
+                flash('文件不存在')
         else:
-            flash('文件不存在')
+            flash('未提供要删除的文件名')
+        db.session.delete(s_list)
+        db.session.commit()
     else:
-        flash('未提供要删除的文件名')
-    db.session.delete(s_list)
-    db.session.commit()
+        flash('没有权限')
     current_list = User_Speed.query.filter_by(username = current_user.username).order_by(User_Speed.id.desc()).all()
     return render_template('speed_list.html', speed_list = current_list)
 
@@ -237,6 +244,39 @@ def my_delete(id):
 def static_files(filename):
     return send_from_directory(app.static_url_path, filename)
 
+@app.route('/static/video/<path:filename>')
+def server_video(filename):
+    video_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    return send_file(video_path, filename, conditional=True)
+
+@login_required
+@app.route('/upload/video/<int:id>')
+def videoplay(id):
+    s_list = User_Speed.query.get(id)
+    if current_user.username == s_list.username:
+        return render_template('video_play.html', user_speed = s_list)
+    else:
+        flash('没有权限')
+        return render_template('video_play.html', user_speed = s_list)
+
+@login_required
+@app.route('/download/<int:id>')
+def download_video(id):
+    s_list = User_Speed.query.get(id)
+    if current_user.username == s_list.username:
+        video = send_from_directory(app.config['UPLOAD_FOLDER'], s_list.filename, as_attachment=True)
+        # 设置响应头,浏览器会提示下载
+        video.headers['Content-Disposition'] = ('attachment; filename=' + s_list.filename)
+        return video
+    else:
+        flash('没有权限')
+        return render_template('speed_list.html', user_speed = s_list)
+
+
+@app.route('/display/<filename>')
+def display_video(filename):
+	#print('display_video filename: ' + filename)
+	return redirect(url_for('static', filename='video/' + filename), code=301)
 
 def init_db():
     with app.app_context():
@@ -247,4 +287,4 @@ def init_db():
 #注释以下代码
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True)
+    app.run(debug=True, threaded = True)

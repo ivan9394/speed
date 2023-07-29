@@ -231,10 +231,11 @@ def speed_cal(ref_height, filename, file_path, method = 'cmj', height_type = 'bo
         extract_frames(input_video = input_path, output_video = key_frame_path, start_frame = 0, end_frame = (frame_count_new-1), max_speed=max_speed)
         print('视频已保存', key_frame_path)
     cap.release()
+    print(filename)
     if method == 'cmj':
         if max_speed_2 > 0:
-            return max_speed_2, ''
+            return max_speed_2, filename
         else:
-            return max_speed, ''
+            return max_speed, filename
     else:
-        return max_speed, key_frame_path
+        return max_speed, filename
