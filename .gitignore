@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+#.ini 不同不更新配置文件, 生产环境与 开发环境配置不同
+.ini
+
 # video
 upload/video/
 static/video/
