@@ -171,6 +171,7 @@ def speed_cal(ref_height, filename, file_path, method = 'cmj', height_type = 'bo
     max_speed_2 = 0
     first_jump_frame_tag = False
     frame_count_new = int(0)
+    jump_frame = int(0)
     # cv2.namedWindow('Crack Detection and Measurement Video Processing')
     cap = cv2.VideoCapture(input_path)
     frame_size = (cap.get(cv2.CAP_PROP_FRAME_WIDTH), cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
