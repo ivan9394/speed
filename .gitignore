@@ -5,6 +5,7 @@ __pycache__/
 
 # video
 upload/video/
+static/video/
 
 # database
 .db
