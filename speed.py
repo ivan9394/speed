@@ -44,12 +44,14 @@ def extract_frames(input_video, output_video, start_frame, end_frame, max_speed)
         ret, frame = cap.read()
         if not ret:
             break
-        # 对帧进行处理（例如，可以在这里添加滤镜或其他操作）
-        overlay = frame.copy()
-        overlay[(height - my_image_height - 100):(height - 100), (0 + 50):(my_image_width + 50)] = my_image
-        # 增加速度
-        overlay = cv2.putText(overlay, str(round(max_speed,2)), (85,(height - 300)), cv2.FONT_HERSHEY_SIMPLEX, 4, (64, 64, 64), 12)
-        frame = cv2.addWeighted(overlay, 0.5, frame, 0.5, 0)
+        # 对帧进行处理（例如，可以在这里添加滤镜或其他操作
+        # 从20帧开始,显示速度
+        if frame_count >= start_frame + 20:
+            overlay = frame.copy()
+            overlay[(height - my_image_height - 100):(height - 100), (0 + 50):(my_image_width + 50)] = my_image
+            # 增加速度
+            overlay = cv2.putText(overlay, str(round(max_speed,2)), (85,(height - 300)), cv2.FONT_HERSHEY_SIMPLEX, 4, (64, 64, 64), 12)
+            frame = cv2.addWeighted(overlay, 0.5, frame, 0.5, 0)
         # 将帧写入输出视频
         out.write(frame)
 
@@ -224,7 +226,7 @@ def speed_cal(ref_height, filename, file_path, method = 'cmj', height_type = 'bo
     if jump_frame > 0:
         filename = 'keyframe_' + filename
         key_frame_path = os.path.join(file_path, filename)
-        extract_frames(input_video = input_path, output_video = key_frame_path, start_frame = (jump_frame - fps_n * 20), end_frame = (jump_frame + fps_n * 20), max_speed=max_speed_2)
+        extract_frames(input_video = input_path, output_video = key_frame_path, start_frame = (jump_frame - fps_n * 50), end_frame = (jump_frame + fps_n * 50), max_speed=max_speed_2)
         print('视频已保存', key_frame_path)
     else:
         filename = 'nokeyframe_' + filename
